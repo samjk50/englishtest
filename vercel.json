@@ -1,0 +1,8 @@
+{
+    "functions": {
+        "src/app/api/candidate/attempts/[id]/certificate.pdf/route.js": {
+            "memory": 3008,
+            "maxDuration": 60
+        }
+    }
+}
