@@ -17,10 +17,11 @@ import {
   Image,
   StyleSheet,
   renderToStream,
+  Font,
 } from '@react-pdf/renderer';
 import { Readable } from 'stream';
 
-// ───────────────── helpers ─────────────────
+// ───────── helpers ─────────
 
 async function sessionFromCookies() {
   const jar = await cookies();
@@ -40,11 +41,11 @@ async function sessionFromCookies() {
 
 function placeholderLogoDataUrl() {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="120">
-    <rect width="100%" height="100%" fill="#0ea5e9"/>
-    <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle"
-      font-family="system-ui, -apple-system, Segoe UI" font-size="28" fill="white">
-      English Proficiency
-    </text>
+    <rect width="100%" height="100%" fill="#1A2D5A"/>
+    <g>
+      <rect x="170" y="24" width="80" height="60" rx="8" fill="#fff"/>
+      <text x="210" y="60" text-anchor="middle" font-family="Helvetica, Arial" font-size="14" fill="#1A2D5A" font-weight="bold">E P</text>
+    </g>
   </svg>`;
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
@@ -55,23 +56,22 @@ function resolveLogoUrlAbsolute(baseUrl) {
   if (baseUrl) return `${baseUrl.replace(/\/$/, '')}/cert/logo.png`;
   return placeholderLogoDataUrl();
 }
+function resolveArrowUrlAbsolute(baseUrl) {
+  const fromEnv = process.env.CERT_LOGO_URL;
+  if (fromEnv && /^https?:\/\//i.test(fromEnv)) return fromEnv;
+  if (baseUrl) return `${baseUrl.replace(/\/$/, '')}/cert/arrow.png`;
+  return placeholderLogoDataUrl();
+}
 
 function levelLabel(code) {
   switch (code) {
-    case 'A1':
-      return 'Beginner';
-    case 'A2':
-      return 'Elementary';
-    case 'B1':
-      return 'Intermediate';
-    case 'B2':
-      return 'Upper Intermediate';
-    case 'C1':
-      return 'Advanced';
-    case 'C2':
-      return 'Proficiency';
-    default:
-      return '';
+    case 'A1': return 'Beginner';
+    case 'A2': return 'Elementary';
+    case 'B1': return 'Intermediate';
+    case 'B2': return 'Upper Intermediate';
+    case 'C1': return 'Advanced';
+    case 'C2': return 'Proficiency';
+    default: return '';
   }
 }
 
@@ -83,278 +83,153 @@ function formatDate(isoOrDate) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-// ───────────────── PDF Styles ─────────────────
+// ───────── styles tuned to fit on one A4 page ─────────
+// NOTE: We set Lato as the default font family at the page level.
 
 const styles = StyleSheet.create({
   page: {
-    padding: 0,
     backgroundColor: '#FFFFFF',
-    fontSize: 10,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
     color: '#2A2F45',
+    fontFamily: 'Lato',
   },
+
   header: {
     backgroundColor: '#1A2D5A',
-    color: '#FFFFFF',
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 10,      // tighter
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  platform: {
-    fontSize: 12,
-    fontWeight: 600,
-    marginTop: 6,
-  },
-  content: {
-    paddingHorizontal: 40, // ~14mm
   },
   logoBox: {
     backgroundColor: '#FFFFFF',
-    padding: 8,
-    borderRadius: 4,
+    padding: 5,
+    borderRadius: 2,
   },
-  logo: {
-    width: 140,
-    height: 40,
-    objectFit: 'contain',
+  logo: { width: 30, height: 30, },
+  platform: { marginTop: 6, fontSize: 11, fontWeight: 700, color: '#FFFFFF' },
+
+  content: {
+    paddingTop: 10,
+    paddingBottom: 18,     // keep overall height in check
+    paddingHorizontal: 36, // ≈ 12–13mm
   },
-  titleWrap: {
+
+  titleWrap: { alignItems: 'center', marginTop: 8, marginBottom: 4 },
+  h1: { fontSize: 26, fontWeight: 700, color: '#243E76', marginBottom: 2 },
+  subtitle: { fontSize: 9.5, color: '#000' },
+
+  rule: { height: 1.5, backgroundColor: '#EDC55D', marginVertical: 12 },
+
+  lead: { textAlign: 'center', color: '#8B92A0', fontSize: 10, marginTop: 10, marginBottom: 4 },
+  nameWrap: {
+    marginTop: 7,     // ↑ more top margin
+    marginBottom: 8,  // ↑ more bottom margin
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  h1: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: '#243E76',
-    marginTop: 20,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 10,
-    color: '#000000',
-  },
-  rule: {
-    height: 2,
-    backgroundColor: '#EDC55D',
-    marginVertical: 12,
-  },
-  lead: {
-    textAlign: 'center',
-    color: '#8B92A0',
-    fontSize: 10.5,
-    marginTop: 18,
-    marginBottom: 6,
   },
   name: {
     textAlign: 'center',
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: 700,
     color: '#2F487D',
-    textDecoration: 'underline',
-    textDecorationColor: '#EDC55D',
-    textDecorationStyle: 'solid',
-    textDecorationThickness: 2,
-    marginBottom: 8,
+
+    // Thick underline via border (works in react-pdf)
+    paddingBottom: 2,               // small gap between text and line
+    borderBottomWidth: 2,           // ← increase for thicker line
+    borderBottomColor: '#EDC55D',
+    alignSelf: 'center',            // underline width = text width
+  },
+  descWrap: {
+    width: 380,          // your requested width
+    alignSelf: 'center', // centers within the page/content
   },
   desc: {
     textAlign: 'center',
-    color: '#6B7280',
-    fontSize: 10.5,
-    lineHeight: 1.5,
-    marginHorizontal: 18,
-    marginBottom: 10,
+    color: '#898A94',
+    fontSize: 10,
+    lineHeight: 1.4,
+    fontWeight: 400,
   },
-  highlight: {
-    color: '#FBCD63',
-    fontWeight: 800,
-  },
+  highlight: { color: '#FBCD63', fontWeight: 900 },
+
+  bold: { fontWeight: 700 },
+
   panel: {
-    backgroundColor: '#F1F3F5',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 4,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginTop: 12,
+    backgroundColor: '#F4F6F8',
+    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6,
+    paddingVertical: 15, paddingHorizontal: 14, marginTop: 15,
   },
-  levelTitle: {
-    textAlign: 'center',
-    color: '#5D6F97',
-    fontSize: 12,
-    fontWeight: 700,
-    marginBottom: 8,
-  },
-  ladder: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginVertical: 6,
-  },
+  levelTitle: { textAlign: 'center', color: '#5D6F97', fontSize: 11, fontWeight: 700, marginBottom: 15 },
+
+  ladder: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  arrow: { fontSize: 10, color: 'black', marginHorizontal: 4 },
   step: {
-    borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: 4,
-    width: 90,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 6,
+     borderRadius: 2,
+    width: 80, height: 70, alignItems: 'center', justifyContent: 'center', padding: 4,
   },
-  stepActive: {
-    backgroundColor: '#FAC338',
-    borderColor: '#FAC338',
-  },
-  stepCode: {
-    fontWeight: 800,
-    fontSize: 12,
-    color: '#2A2F45',
-  },
-  stepCodeActive: {
-    color: '#1A2D5A',
-  },
-  stepLabel: {
-    fontSize: 9,
-    color: '#6B7280',
-  },
-  stepLabelActive: {
-    color: '#2A2F45',
-    fontWeight: 700,
-  },
-  arrow: {
-    fontSize: 12,
-    color: '#9AA3B2',
-    marginHorizontal: 2,
-  },
+  stepActive: { backgroundColor: '#FAC338', borderColor: '#FAC338' },
+  stepCode: { fontWeight: 900, fontSize: 12, color: '#89909E' },
+  stepCodeActive: { color: '#47433E' },
+  stepLabel: { fontSize: 8.5, color: '#A8ADB9', textAlign:"center" },
+  stepLabelActive: { color: '#5B533D', fontWeight: 700, textAlign:"center" },
+
   bullet: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    fontSize: 11,
-    color: '#2A2F45',
-    lineHeight: 1.4,
+    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8,
+    paddingVertical: 8, paddingHorizontal: 10,
   },
   pill: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FAC137',
-    color: '#75663C',
-    borderRadius: 999,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    fontSize: 9.5,
-    fontWeight: 700,
-    marginBottom: 6,
+    alignSelf: 'flex-start', backgroundColor: '#FAC137', color: '#75663C',
+    borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8,
+    fontSize: 9, fontWeight: 700, marginBottom: 6,
   },
+
+  leveldescription:{
+    fontSize:10,
+    lineHeight:1,
+    fontStyle:"italic"
+  },
+
   detailsPanel: {
     backgroundColor: '#FAFBFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 4,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginTop: 12,
+    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6,
+    paddingVertical: 12, paddingHorizontal: 14, marginTop: 10,
   },
-  detailsTitle: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#4D638F',
-    marginBottom: 8,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  box: {
-    width: '48%',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 4,
-  },
-  metaLabel: {
-    fontSize: 9,
-    color: '#989EAF',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  metaValue: {
-    fontSize: 10,
-    color: '#555862',
-  },
-  dividerCard: {
-    backgroundColor: '#FAFBFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 4,
-    height: 12,
-    marginTop: 12,
-  },
+  detailsTitle: { fontSize: 11, fontWeight: 600, color: '#4D638F', marginBottom: 8 },
+
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  box: { width: '48%', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 4, marginBottom: 6 },
+  metaLabel: { fontSize: 8.5, color: '#989EAF', textTransform: 'uppercase', marginBottom: 1 },
+  metaValue: { fontSize: 9.5, color: '#555862' },
+
   verifyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingHorizontal: 24,
-    paddingTop: 18,
-    alignItems: 'flex-start',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    paddingTop: 14, paddingHorizontal: 16,
   },
-  verifyLeft: {
-    flex: 1,
-  },
-  verifyTitle: {
-    fontSize: 11,
-    color: '#556A94',
-    marginBottom: 8,
-  },
-  verifyText: {
-    fontSize: 10,
-    color: '#6B7280',
-    lineHeight: 1.6,
-  },
-  verifyUrl: {
-    fontSize: 10,
-    fontFamily: 'Courier',
-    color: '#FACD6A',
-    marginTop: 4,
-  },
-  qrWrap: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 6,
-  },
-  qr: {
-    width: 90,
-    height: 90,
-    objectFit: 'contain',
-  },
-  bottomRule: {
-    height: 5,
-    backgroundColor: '#847446',
-    marginVertical: 24,
-  },
+  verifyLeft: { flex: 1, paddingRight: 12 },
+  verifyTitle: { fontSize: 10.5, color: '#556A94', marginBottom: 6 },
+  verifyText: { fontSize: 9.5, color: '#6B7280', lineHeight: 1.5 },
+  verifyUrl: { fontSize: 9.5, fontFamily: 'Lato', color: '#FACD6A', marginTop: 4, wordBreak: 'break-all' },
+
+  qrWrap: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 5 },
+  qr: { width: 96, height: 96, objectFit: 'contain' },
+
+  bottomRule: { height: 4, backgroundColor: '#847446', marginTop: 16 }, // smaller to avoid spill
+
 });
 
-// ───────────────── PDF Component ─────────────────
+// ───────── PDF component ─────────
 
 function CertificatePDF({
-  platform,
-  logoUrl,
-  user,
-  level,
-  ladder,
-  details,
-  verifyUrl,
-  qrDataUrl,
+  platform, logoUrl, user, level, ladder, details, verifyUrl, qrDataUrl, arrowUrl
 }) {
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={styles.header} wrap={false}>
           {logoUrl ? (
             <View style={styles.logoBox}>
               <Image style={styles.logo} src={logoUrl} />
@@ -365,25 +240,28 @@ function CertificatePDF({
 
         <View style={styles.content}>
           {/* Title */}
-          <View style={styles.titleWrap}>
+          <View style={styles.titleWrap} wrap={false}>
             <Text style={styles.h1}>CERTIFICATE</Text>
             <Text style={styles.subtitle}>of English Proficiency</Text>
           </View>
           <View style={styles.rule} />
 
-          {/* Name + description */}
+          {/* Lead + Name + Intro */}
           <Text style={styles.lead}>This is to certify that</Text>
-          <Text style={styles.name}>{user.name}</Text>
-          <Text style={styles.desc}>
-            has successfully completed the English Proficiency Test on platform.com and has
-            demonstrated the <Text style={styles.highlight}>{level}</Text> level of English in
-            accordance with the Common European Framework of Reference for Languages (CEFR).
-          </Text>
+          <View style={styles.nameWrap}>
+            <Text style={styles.name}>{user.name}</Text>
+          </View>
+          <View style={styles.descWrap}>
+            <Text style={styles.desc}>
+              has successfully completed the English Proficiency Test on platform.com and has
+              demonstrated the <Text style={styles.highlight}>{level}</Text> level of English in accordance with the Common European
+              Framework of <Text style={styles.bold}>Reference for Languages (CEFR)</Text> .
+            </Text>
+          </View>
 
           {/* Level panel */}
-          <View style={styles.panel}>
+          <View style={styles.panel} wrap={false}>
             <Text style={styles.levelTitle}>Level Achieved</Text>
-
             <View style={styles.ladder}>
               {ladder.map((code, i) => {
                 const active = code === level;
@@ -395,22 +273,28 @@ function CertificatePDF({
                         {levelLabel(code)}
                       </Text>
                     </View>
-                    {i < ladder.length - 1 ? <Text style={styles.arrow}>→</Text> : null}
+                    {i < ladder.length - 1 ? (
+                      <Text style={styles.arrow}>
+                        {arrowUrl ? (
+                          <View>
+                            <Image src={arrowUrl} />
+                          </View>
+                        ) : null}
+                      </Text>
+                    ) : null}
                   </React.Fragment>
                 );
               })}
             </View>
 
             <View style={styles.bullet}>
-              <Text style={styles.pill}>
-                {level} — {levelLabel(level)}
-              </Text>
-              <Text>"{details.descriptor}"</Text>
+              <Text style={styles.pill}>{level} — {levelLabel(level)}</Text>
+              <Text style={styles.leveldescription}>"{details.descriptor}"</Text>
             </View>
           </View>
 
-          {/* Details panel */}
-          <View style={styles.detailsPanel}>
+          {/* Details */}
+          <View style={styles.detailsPanel} wrap={false}>
             <Text style={styles.detailsTitle}>Certificate Details</Text>
             <View style={styles.grid}>
               <View style={styles.box}>
@@ -432,10 +316,8 @@ function CertificatePDF({
             </View>
           </View>
 
-          <View style={styles.dividerCard} />
-
-          {/* Verification row */}
-          <View style={styles.verifyRow}>
+          {/* Verification */}
+          <View style={styles.verifyRow} wrap={false}>
             <View style={styles.verifyLeft}>
               <Text style={styles.verifyTitle}>Verification</Text>
               <Text style={styles.verifyText}>
@@ -443,13 +325,7 @@ function CertificatePDF({
               </Text>
               <Text style={styles.verifyUrl}>{verifyUrl}</Text>
               <Text
-                style={{
-                  color: '#A2A6B3',
-                  fontSize: 9,
-                  marginTop: 6,
-                  fontStyle: 'italic',
-                  maxWidth: 350,
-                }}
+                style={{ color: '#A2A6B3', fontSize: 9, marginTop: 6, fontStyle: 'italic', maxWidth: 350 }}
               >
                 This certificate is digitally issued and verified by English Proficiency Platform
                 Assessment System; no manual signature required.
@@ -460,18 +336,18 @@ function CertificatePDF({
             </View>
           </View>
 
-          <View style={styles.bottomRule} />
+          <View style={styles.bottomRule} wrap={false} />
         </View>
       </Page>
     </Document>
   );
 }
 
-// ───────────────── route ─────────────────
+// ───────── route ─────────
 
 export async function GET(_req, context) {
   try {
-    const { id } = context.params;
+    const { id } = await context.params;
 
     const s = await sessionFromCookies();
     if (!s) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -480,7 +356,6 @@ export async function GET(_req, context) {
       where: { id },
       include: { user: true },
     });
-
     if (!attempt || (s.role !== 'ADMIN' && attempt.userId !== s.sub)) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
@@ -503,9 +378,10 @@ export async function GET(_req, context) {
 
     const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const verifyUrl = `${base.replace(/\/$/, '')}/verify/${verifySlug}`;
-    const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, scale: 6 });
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, scale: 5 }); // slightly smaller
 
     const logoUrl = resolveLogoUrlAbsolute(base);
+    const arrowUrl = resolveArrowUrlAbsolute(base);
 
     const displayName = (attempt.user.fullName || '')
       .trim()
@@ -523,7 +399,26 @@ export async function GET(_req, context) {
       C2: 'Can understand with ease virtually everything heard or read and can express themselves spontaneously, very fluently and precisely.',
     };
 
-    // Build PDF as a stream (low memory)
+    // --- Register Lato for react-pdf (absolute URLs for Node runtime)
+    // Place the font files under /public/fonts:
+    // - /public/fonts/Lato-Regular.ttf
+    // - /public/fonts/Lato-Italic.ttf
+    // - /public/fonts/Lato-Bold.ttf
+    // - /public/fonts/Lato-BoldItalic.ttf
+    // - /public/fonts/Lato-Light.ttf   (optional)
+    // - /public/fonts/Lato-Black.ttf   (optional)
+    Font.register({
+      family: 'Lato',
+      fonts: [
+        { src: `${base}/fonts/Lato-Regular.ttf`, fontWeight: 'normal', fontStyle: 'normal' },
+        { src: `${base}/fonts/Lato-Italic.ttf`,  fontWeight: 'normal', fontStyle: 'italic' },
+        { src: `${base}/fonts/Lato-Bold.ttf`,    fontWeight: 'bold',   fontStyle: 'normal' },
+        { src: `${base}/fonts/Lato-BoldItalic.ttf`, fontWeight: 'bold', fontStyle: 'italic' },
+        { src: `${base}/fonts/Lato-Light.ttf`,   fontWeight: 300,      fontStyle: 'normal' },
+        { src: `${base}/fonts/Lato-Black.ttf`,   fontWeight: 900,      fontStyle: 'normal' },
+      ],
+    });
+
     const pdfStreamNode = await renderToStream(
       <CertificatePDF
         platform="English Proficiency Platform"
@@ -540,12 +435,11 @@ export async function GET(_req, context) {
         }}
         verifyUrl={verifyUrl}
         qrDataUrl={qrDataUrl}
+        arrowUrl={arrowUrl}
       />
     );
 
-    // Node stream → Web ReadableStream
     const webStream = Readable.toWeb(pdfStreamNode);
-
     return new NextResponse(webStream, {
       headers: {
         'Content-Type': 'application/pdf',
