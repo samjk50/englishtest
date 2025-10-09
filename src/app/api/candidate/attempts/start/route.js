@@ -43,7 +43,7 @@ export async function POST() {
     if (!need) continue;
 
     const qs = await prisma.question.findMany({
-      where: { tag },
+      where: { tag, archived:false },
       include: { options: { orderBy: { order: "asc" } } },
     });
 

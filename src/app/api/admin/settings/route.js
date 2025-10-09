@@ -29,7 +29,7 @@ const toObj = (val) => {
 };
 
 async function countsByTag() {
-  const rows = await prisma.question.groupBy({ by: ["tag"], _count: { tag: true } });
+  const rows = await prisma.question.groupBy({ by: ["tag"], where: { archived: false }, _count: { tag: true, } });
   const map = Object.fromEntries(TAGS.map(t => [t, 0]));
   for (const r of rows) map[r.tag] = r._count.tag;
   return map;
