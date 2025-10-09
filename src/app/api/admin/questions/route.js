@@ -13,7 +13,10 @@ export async function GET(req) {
   const page = Number(searchParams.get('page') || '1');
   const pageSize = Math.min(Number(searchParams.get('pageSize') || '20'), 50);
 
-  const where = tag && Level.options.includes(tag) ? { tag } : {};
+  const where = {
+    archived: false, // <-- hide archived from admin list
+    ...(tag && Level.options.includes(tag) ? { tag } : {}),
+  };
   const [total, items] = await Promise.all([
     prisma.question.count({ where }),
     prisma.question.findMany({

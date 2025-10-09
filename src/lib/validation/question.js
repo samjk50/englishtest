@@ -12,7 +12,8 @@ export const questionCreateSchema = z.object({
   text: z.string().trim().min(1, 'Question text is required').max(1000),
   tag: Level,
   allowMultiple: z.boolean().default(false),
-  options: z.array(optionSchema).min(2, 'At least two options are required').max(8)
+  options: z.array(optionSchema).min(2, 'At least two options are required').max(8),
+  archived: z.boolean().optional().default(false),
 }).superRefine((val, ctx) => {
   const correctCount = val.options.filter(o => o.isCorrect).length;
   if (!val.allowMultiple && correctCount !== 1) {

@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyAccess } from '@/lib/auth';
 
 async function requireAdmin() {
-  const jar = await cookies(); // Next 15: async
+  const jar = await cookies();
   const token = jar.get('access_token')?.value;
   if (!token) return null;
   const claims = verifyAccess(token);
@@ -24,7 +24,7 @@ export async function GET(_req, context) {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const q = await prisma.question.findUnique({
-    where: { id },
+    where: { id, archived:false },
     include: { options: { orderBy: { order: 'asc' } } },
   });
   if (!q) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -48,13 +48,13 @@ export async function PUT(req, context) {
       { status: 422 }
     );
   }
-  const { text, tag, allowMultiple, options } = parsed.data;
+  const { text, tag, allowMultiple, options, archived = false } = parsed.data;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.question.update({
         where: { id },
-        data: { text, tag, allowMultiple },
+        data: { text, tag, allowMultiple, archived },
       });
 
       await tx.option.deleteMany({ where: { questionId: id } });
@@ -71,7 +71,8 @@ export async function PUT(req, context) {
     });
 
     return NextResponse.json({ ok: true, id: result.id });
-  } catch {
+  } catch (e) {
+    console.error('PUT /questions/:id failed', e);
     return NextResponse.json({ error: 'Failed to update question' }, { status: 500 });
   }
 }
@@ -85,11 +86,30 @@ export async function DELETE(_req, context) {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+    // If there are attempt items referencing this question, block hard delete.
+    const refs = await prisma.attemptItem.count({ where: { questionId: id } });
+    if (refs > 0) {
+      const updated = await prisma.question.update({
+        where: { id },
+        data: { archived: true, },
+      });
+      return NextResponse.json({ ok: true });
+      
+    }
+
+    // Options cascade per your schema.
     await prisma.question.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (e) {
+    console.error('DELETE /questions/:id failed', e);
     if (e?.code === 'P2025') {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+    if (e?.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'Question has related records; archive instead.' },
+        { status: 409 }
+      );
     }
     return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });
   }
