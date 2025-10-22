@@ -2,11 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Squares2X2Icon, Cog6ToothIcon, ArrowRightOnRectangleIcon, AcademicCapIcon } from "@heroicons/react/24/outline";
+import {
+  Squares2X2Icon,
+  Cog6ToothIcon,
+  ArrowRightOnRectangleIcon,
+  AcademicCapIcon,
+  CreditCardIcon,
+  UsersIcon,
+  ChartBarIcon,
+} from "@heroicons/react/24/outline";
 
 const NAV = [
   { href: "/admin/questions", label: "Questions", icon: Squares2X2Icon },
   { href: "/admin/settings", label: "Settings", icon: Cog6ToothIcon },
+  { href: "/admin/referral_agents", label: "Refferal Agents", icon: CreditCardIcon },
+  { href: "/admin/manage_referrals", label: "Manage Refferals", icon: UsersIcon },
+  { href: "/admin/analytics/candidates", label: "Candidates", icon: UsersIcon },
+  { href: "/admin/analytics/system", label: "System Analytics", icon: ChartBarIcon },
 ];
 
 export default function AdminSidebar({ user }) {

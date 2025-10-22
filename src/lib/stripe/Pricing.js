@@ -1,9 +1,18 @@
-// lib/pricing.js
-// Map a UI "region" to a Stripe Price ID (test mode)
-export const REGION_TO_PRICE = {
-    EU: "price_1SEvqoQ7GAc1v5HcLC2UhccR", // EUR price id
-    UK: "price_1SEvqoQ7GAc1v5HcjKmp3g0v", // GBP price id
-    US: "price_1SEvl2Q7GAc1v5HcZjTfPVyA", // USD price id
-    // Add more as needed, e.g. PK: "price_123_pk_test"
-  };
-  
+// Map UI region -> Stripe price + currency
+export const REGIONS = {
+  EU: { label: 'Europe (EUR)',         currencyCode: 'EUR', priceId: 'price_1SEvqoQ7GAc1v5HcLC2UhccR' },
+  UK: { label: 'United Kingdom (GBP)', currencyCode: 'GBP', priceId: 'price_1SEvqoQ7GAc1v5HcjKmp3g0v' },
+  US: { label: 'United States (USD)',  currencyCode: 'USD', priceId: 'price_1SEvl2Q7GAc1v5HcZjTfPVyA' },
+};
+
+export const REGION_LIST = Object.entries(REGIONS).map(([key, v]) => ({
+  key, label: v.label, currencyCode: v.currencyCode,
+}));
+
+export const REGION_TO_PRICE = Object.fromEntries(
+  Object.entries(REGIONS).map(([k, v]) => [k, v.priceId])
+);
+
+export const REGION_TO_CURRENCY = Object.fromEntries(
+  Object.entries(REGIONS).map(([k, v]) => [k, v.currencyCode])
+);

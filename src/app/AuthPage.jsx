@@ -58,7 +58,7 @@ const EU_COUNTRIES = [
 
 export default function AuthPage() {
   const [tab, setTab] = useState("login"); // 'login' | 'register'
-  const [step, setStep] = useState(1); // 1: details, 2: verification
+  const [step, setStep] = useState(0); // 0: referral, 1: details, 2: verification
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
@@ -73,14 +73,24 @@ export default function AuthPage() {
             <>
               <div className="flex justify-center">
                 <div className="flex items-center px-2">
-                  {step === 1 ? <User strokeWidth={2.3} className="text-black" /> : <Shield strokeWidth={2.3} className="text-black" />}
+                  {step === 0 ? (
+                    <Mail strokeWidth={2.3} className="text-black" />
+                  ) : step === 2 ? (
+                    <Shield strokeWidth={2.3} className="text-black" />
+                  ) : (
+                    <User strokeWidth={2.3} className="text-black" />
+                  )}
                 </div>
-                <h1 className="text-2xl font-semibold text-slate-900">{step === 1 ? "Create Your Account" : "Identity Verification"} </h1>
+                <h1 className="text-2xl font-semibold text-slate-900">
+                  {step === 0 ? "Referral Code" : step === 1 ? "Create Your Account" : "Identity Verification"}
+                </h1>
               </div>
               <p className="text-slate-600 mt-1">
-                {step === 1
-                  ? "Enter your personal information to get started"
-                  : "Upload you documents to verify your identity and complete registration"}
+                {step === 0
+                  ? "Do you have a referral code? (Optional)"
+                  : step === 1
+                    ? "Enter your personal information to get started"
+                    : "Upload your documents to verify your identity and complete registration"}
               </p>
             </>
           )}
@@ -190,7 +200,7 @@ function LoginForm() {
   );
 }
 
-// ---- NEW: two-step register wizard ----
+// ---- Register wizard with Step 0 (Referral) ----
 function RegisterWizard({ onSwitchToLogin, step, setStep }) {
   const [form, setForm] = useState({
     fullName: "",
@@ -202,19 +212,22 @@ function RegisterWizard({ onSwitchToLogin, step, setStep }) {
     city: "",
   });
 
-  // Step 1 submit -> validate, then go to step 2
+  const [referralCode, setReferralCode] = useState(""); // NEW
+
   const [errors, setErrors] = useState({});
-  function validateStep1() {
-    const res = RegisterSchema.safeParse(form);
-    if (!res.success) {
-      const f = res.error.flatten().fieldErrors;
-      const out = {};
-      for (const k in f) out[k] = f[k]?.[0] || "";
-      setErrors(out);
-      return false;
-    }
-    setErrors({});
-    return true;
+
+  if (step === 0) {
+    return (
+      <ReferralStep0
+        referralCode={referralCode}
+        setReferralCode={setReferralCode}
+        onContinue={() => setStep(1)}
+        onSkip={() => {
+          setReferralCode("");
+          setStep(1);
+        }}
+      />
+    );
   }
 
   if (step === 1) {
@@ -226,12 +239,118 @@ function RegisterWizard({ onSwitchToLogin, step, setStep }) {
           setForm((s) => ({ ...s, [k]: v }));
           setErrors((e) => ({ ...e, [k]: "" }));
         }}
-        onNext={() => validateStep1() && setStep(2)}
+        onNext={() => {
+          const res = RegisterSchema.safeParse(form);
+          if (!res.success) {
+            const f = res.error.flatten().fieldErrors;
+            const out = {};
+            for (const k in f) out[k] = f[k]?.[0] || "";
+            setErrors(out);
+            return;
+          }
+          setErrors({});
+          setStep(2);
+        }}
         onSwitchToLogin={onSwitchToLogin}
       />
     );
   }
-  return <RegisterFormStep2 form={form} onBack={() => setStep(1)} />;
+
+  return <RegisterFormStep2 form={form} referralCode={referralCode} onBack={() => setStep(1)} />;
+}
+
+// ---- Step 0: Referral Code ----
+function ReferralStep0({ referralCode, setReferralCode, onContinue, onSkip }) {
+  const [checking, setChecking] = useState(false);
+  const [valid, setValid] = useState(false);
+  const [agentName, setAgentName] = useState("");
+  const [error, setError] = useState("");
+
+  const CODE_RE = /^AGENT[A-Z0-9]{6}$/;
+
+  async function validate(code) {
+    setError("");
+    setAgentName("");
+    setValid(false);
+
+    const upper = code.trim().toUpperCase();
+    if (!upper || !CODE_RE.test(upper)) {
+      setValid(false);
+      return;
+    }
+
+    setChecking(true);
+    try {
+      const r = await fetch("/api/candidate/referrals/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: upper }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (data.valid) {
+        setValid(true);
+        setAgentName(data.agent?.name || "");
+      } else {
+        setValid(false);
+        setError("This referral code is invalid or inactive.");
+      }
+    } catch {
+      setValid(false);
+      setError("Unable to validate code right now.");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) onContinue();
+      }}
+      className="space-y-5"
+      noValidate
+    >
+      <div className="p-6">
+        <label className="block text-sm font-bold text-black mb-1">Referral Code</label>
+        <input
+          className="w-full rounded-xl border p-3 placeholder:text-gray-500 placeholder:text-center placeholder:text-md text-black text-center focus:outline-black"
+          value={referralCode}
+          onChange={(e) => {
+            const v = e.target.value.toUpperCase();
+            setReferralCode(v);
+            setError("");
+            setValid(false);
+            if (v.length === 11) validate(v);
+          }}
+          onBlur={() => referralCode && referralCode.length === 11 && validate(referralCode)}
+          placeholder="ENTER YOUR REFERRAL CODE (IF ANY)"
+          inputMode="latin"
+          autoCapitalize="characters"
+        />
+        <div className="mt-2 text-center text-gray-600">Enter your referral code to get special benefits</div>
+
+        {agentName && valid && (
+          <p className="mt-2 text-sm text-green-700">
+            Linked to <span className="font-medium">{agentName}</span>
+          </p>
+        )}
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={!valid || checking}
+          className={`mt-6 w-full rounded-full py-3 font-bold text-white ${valid ? "bg-[#5E5FC3]" : "bg-slate-300 cursor-not-allowed"}`}
+        >
+          {checking ? "Checking…" : "Continue"}
+        </button>
+
+        <button type="button" onClick={onSkip} className="mt-3 block w-full text-center text-md text-slate-700 font-extrabold mt-2">
+          Skip – I don't have a referral code
+        </button>
+      </div>
+    </form>
+  );
 }
 
 function RegisterFormStep1({ form, setField, errors, onNext, onSwitchToLogin }) {
@@ -299,18 +418,11 @@ function RegisterFormStep1({ form, setField, errors, onNext, onSwitchToLogin }) 
           </div>
         </button>
       </div>
-
-      {/* <p className="text-center text-sm text-slate-600">
-        Already have an account?{" "}
-        <button type="button" onClick={onSwitchToLogin} className="text-indigo-600 underline">
-          Sign in
-        </button>
-      </p> */}
     </form>
   );
 }
 
-function RegisterFormStep2({ form, onBack }) {
+function RegisterFormStep2({ form, onBack, referralCode }) {
   const [selfie, setSelfie] = useState(null);
   const [idDoc, setIdDoc] = useState(null);
   const [consent, setConsent] = useState(false);
@@ -327,6 +439,8 @@ function RegisterFormStep2({ form, onBack }) {
     const fd = new FormData();
     // step-1 fields
     Object.entries(form).forEach(([k, v]) => fd.append(k, v ?? ""));
+    // step-0 field (optional)
+    if (referralCode) fd.append("referralCode", referralCode);
     // step-2 fields
     fd.append("selfie", selfie);
     fd.append("idDoc", idDoc);
@@ -338,7 +452,6 @@ function RegisterFormStep2({ form, onBack }) {
         method: "POST",
         body: fd,
         credentials: "include",
-        // DO NOT set Content-Type; the browser sets the multipart boundary
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || data?.ok === false) {
@@ -456,12 +569,7 @@ function UploadCard({ label, helper, accept, file, onFile, type }) {
         <div className="mt-2 flex justify-center">
           {preview === "PDF" ? (
             <div className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm text-slate-700 w-[60%] ">
-              <div
-                className=" text-ellipsis
-            overflow-hidden"
-              >
-                📄 {file.name}
-              </div>
+              <div className=" text-ellipsis overflow-hidden">📄 {file.name}</div>
             </div>
           ) : (
             <img src={preview} alt="Preview" className="h-28 w-full max-w-[120px] rounded-md object-cover border" />
@@ -476,7 +584,6 @@ function UploadCard({ label, helper, accept, file, onFile, type }) {
           <Upload size={15} /> {file ? "Replace File" : "Select File"}
           <input type="file" accept={accept} className="hidden" onChange={(e) => onFile(e.target.files?.[0] || null)} />
         </label>
-        {/* <p className="mt-1 text-xs text-slate-500">Accepted: JPG, PNG, WEBP (ID also allows PDF). Max 5MB.</p> */}
       </div>
     </div>
   );
@@ -495,10 +602,7 @@ function FileBox({ label, onFile, accept = ".jpg,.jpeg,.png,.webp" }) {
 function Field({ value, onChange, placeholder, type = "text", required = false, error = "" }) {
   return (
     <div>
-      <div
-        className={`border rounded-xl px-3 py-1.5
-                       ${error ? "border-red-400" : "border-slate-300"}`}
-      >
+      <div className={`border rounded-xl px-3 py-1.5 ${error ? "border-red-400" : "border-slate-300"}`}>
         <input
           className="w-full outline-none text-slate-900 placeholder-slate-400"
           type={type}

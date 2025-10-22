@@ -8,12 +8,13 @@ export default function AttemptsTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [actionBusyId, setActionBusyId] = useState(null);
   const router = useRouter();
 
   async function load(p = page) {
     setLoading(true);
     try {
-      const r = await fetch(`/api/candidate/attempts?page=${p}&pageSize=10`, { credentials: "include" });
+      const r = await fetch(`/api/candidate/attempts?page=${p}&pageSize=10`, { credentials: "include", cache: "no-store" });
       const j = await r.json();
       setRows(j.items || []);
       setTotalPages(j.totalPages || 1);
@@ -26,9 +27,33 @@ export default function AttemptsTable() {
     load(); /* eslint-disable-next-line */
   }, [page]);
 
-  async function startTest() {
-    // router.push("/candidate/instructions");
+  function takeNewTest() {
+    // New test = pay first
     router.push("/candidate/checkout");
+  }
+
+  async function startFromDashboard() {
+    // Upgrades the paid AWAITING_START attempt to IN_PROGRESS and returns attemptId
+    try {
+      setActionBusyId("start");
+      const res = await fetch("/api/candidate/attempts/start", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.attemptId) {
+        // If webhook hasn't landed yet or another issue, send them to instructions to retry
+        router.push("/candidate/instructions");
+        return;
+      }
+      router.push(`/candidate/test/${data.attemptId}`);
+    } finally {
+      setActionBusyId(null);
+    }
+  }
+
+  function resumeTest(id) {
+    router.push(`/candidate/test/${id}`);
   }
 
   return (
@@ -39,14 +64,14 @@ export default function AttemptsTable() {
           <p className="text-sm text-gray-600 mt-0.5">Your complete testing history</p>
         </div>
         <button
-          onClick={startTest}
-          className="flex items-center gap-2 bg-[#4E58BC] text-white px-6 py-3 rounded-4xl
-          hover:bg-indigo-700 transition-colors"
+          onClick={takeNewTest}
+          className="flex items-center gap-2 bg-[#4E58BC] text-white px-6 py-3 rounded-4xl hover:bg-indigo-700 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           <span className="text-sm font-bold">Take New Test</span>
         </button>
       </div>
+
       <div className="px-10">
         {rows.length === 0 ? (
           <div className="px-8 py-16 text-center">
@@ -64,9 +89,8 @@ export default function AttemptsTable() {
             <p className="text-gray-600 mb-6">You haven't taken any tests yet. Start your first English proficiency test now!</p>
             <div className="flex justify-center">
               <button
-                onClick={startTest}
-                className="flex items-center gap-2 bg-[#4E58BC] text-white px-6 py-3 rounded-4xl
-          hover:bg-indigo-700 transition-colors"
+                onClick={takeNewTest}
+                className="flex items-center gap-2 bg-[#4E58BC] text-white px-6 py-3 rounded-4xl hover:bg-indigo-700 transition-colors"
               >
                 <span className="text-sm font-bold">Take your first test</span>
               </button>
@@ -106,7 +130,13 @@ export default function AttemptsTable() {
                         <StatusBadge status={a.status} level={a.level} />
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <ActionsCell id={a.id} status={a.status} router={router} />
+                        <ActionsCell
+                          id={a.id}
+                          status={a.status}
+                          onStartNow={startFromDashboard}
+                          onResume={() => resumeTest(a.id)}
+                          actionBusyId={actionBusyId}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -148,32 +178,53 @@ const LEVEL_LABELS = {
 };
 
 function StatusBadge({ status, level }) {
-  if (status !== "SUBMITTED") {
+  const s = String(status || "").toUpperCase();
+
+  if (s === "SUBMITTED") {
+    const levelValue = level || "A1";
+    const proficiencyName = LEVEL_LABELS[levelValue] || "Beginner";
     return (
-      <span className="inline-flex items-center rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700">
-        In progress
+      <span className="inline-flex items-center rounded-full bg-[#FAEAEB] px-3 py-1 text-base font-bold text-[#F14374]">
+        {levelValue} - {proficiencyName}
       </span>
     );
   }
 
-  const levelValue = level || "A1";
-  const proficiencyName = LEVEL_LABELS[levelValue] || "Beginner";
+  if (s === "AWAITING_START") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+        Awaiting start
+      </span>
+    );
+  }
 
+  // default: IN_PROGRESS or any other non-submitted state
   return (
-    <span
-      className="inline-flex items-center rounded-full bg-[#FAEAEB] px-3 py-1 text-base
-    font-bold text-[#F14374]"
-    >
-      {levelValue} - {proficiencyName}
+    <span className="inline-flex items-center rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700">
+      In progress
     </span>
   );
 }
 
-function ActionsCell({ id, status, router }) {
-  if (status !== "SUBMITTED") {
+function ActionsCell({ id, status, onStartNow, onResume, actionBusyId }) {
+  const s = String(status || "").toUpperCase();
+
+  if (s === "AWAITING_START") {
     return (
       <button
-        onClick={() => router.push(`/candidate/test/${id}`)}
+        onClick={onStartNow}
+        disabled={actionBusyId === "start"}
+        className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 text-white px-4 py-2 text-xs font-semibold hover:bg-indigo-500 disabled:opacity-60 transition-colors"
+      >
+        {actionBusyId === "start" ? "Starting…" : "Start Quiz Now"}
+      </button>
+    );
+  }
+
+  if (s !== "SUBMITTED") {
+    return (
+      <button
+        onClick={onResume}
         className="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-4 py-2 text-xs font-medium hover:bg-gray-800 transition-colors"
       >
         Resume Test
@@ -181,6 +232,7 @@ function ActionsCell({ id, status, router }) {
     );
   }
 
+  // SUBMITTED
   return (
     <a
       href={`/api/candidate/attempts/${id}/certificate.pdf`}

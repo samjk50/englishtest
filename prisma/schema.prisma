@@ -25,6 +25,8 @@ model User {
   // was: kycStatus KycStatus?
   kycStatus            String?               @default("PENDING") // 'PENDING' | 'APPROVED' | 'REJECTED'
   identityVerification IdentityVerification?
+
+  CandidateAgentLink CandidateAgentLink[]
 }
 
 model Question {
@@ -64,15 +66,27 @@ model Attempt {
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   startedAt     DateTime      @default(now())
   finishedAt    DateTime?
-  // was: status AttemptStatus
-  status        String        @default("IN_PROGRESS") // 'IN_PROGRESS' | 'SUBMITTED'
+  status        String        @default("IN_PROGRESS") // 'AWAITING_START' | 'IN_PROGRESS' | 'SUBMITTED'
   items         AttemptItem[]
-  // was: level Level?
-  level         String? // 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+  level         String?
   certificateId String?
   issuedAt      DateTime?
   verifySlug    String?       @unique
   region        String?
+
+  // you already have these fields from checkout/webhook work:
+  paymentCurrencyCode String?
+  paymentAmountCents  Int       @default(0)
+  paidAt              DateTime?
+  paymentStatus       String    @default("UNPAID") // 'UNPAID' | 'PAID' | 'REFUNDED'
+  stripePaymentId     String?   @unique
+  stripeSessionId     String?   @unique
+
+  // NEW: manual per-attempt override (admin “Adjust Referral”)
+  agentId String?
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([agentId], map: "idx_attempt_agent_override")
 }
 
 model AttemptItem {
@@ -109,4 +123,47 @@ model IdentityVerification {
   reviewedAt DateTime?
   reviewedBy String?
   notes      String?
+}
+
+model Agent {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  code              String   @unique
+  commissionPercent Float    @default(0)
+  currencyCode      String // <-- add this now: 'USD' | 'EUR' | 'PKR', etc.
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  candidates CandidateAgentLink[]
+  payouts    AgentPayout[]
+  Attempt    Attempt[]
+
+  @@index([status], map: "idx_agent_status")
+  @@index([currencyCode], map: "idx_agent_currency")
+}
+
+model CandidateAgentLink {
+  id          String @id @default(cuid())
+  candidateId String @unique
+  candidate   User   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  linkedAt DateTime @default(now())
+  source   String   @default("REGISTRATION") // 'REGISTRATION' | 'MANUAL'
+}
+
+model AgentPayout {
+  id      String @id @default(cuid())
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  amountCents Int
+  notes       String? // e.g., "Paid on Date 09/10/2025"
+  paidOnDate  DateTime? // optional field to mirror your screenshot line
+  createdAt   DateTime  @default(now())
+  createdBy   String? // admin user id or email
 }

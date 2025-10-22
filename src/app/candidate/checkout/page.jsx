@@ -1,14 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Shield } from "lucide-react";
 
 export default function BillingPage() {
+  // Selected region key (e.g., "US", "EU", "UK")
   const [region, setRegion] = useState("");
+
+  // Region list shown in the dropdown
+  const [regions, setRegions] = useState([
+    // Fallback list in case context API fails
+    { key: "US", label: "United States (USD)", currencyCode: "USD" },
+    { key: "EU", label: "Europe (EUR)", currencyCode: "EUR" },
+    { key: "UK", label: "United Kingdom (GBP)", currencyCode: "GBP" },
+  ]);
+
+  // If the candidate is linked to an agent with a currency, lock the dropdown
+  const [locked, setLocked] = useState(false);
+  const [agentName, setAgentName] = useState("");
+  const [agentCurrency, setAgentCurrency] = useState("");
+
+  // UI state
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  // Fetch checkout context on mount (hasAgent, agent info, regions list)
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch("/api/candidate/checkout/context", { cache: "no-store" });
+        const data = await r.json().catch(() => ({}));
+
+        if (r.ok) {
+          if (Array.isArray(data.regions) && data.regions.length) {
+            setRegions(data.regions);
+          }
+
+          if (data.hasAgent && data.agent) {
+            setLocked(true);
+            setAgentName(data.agent.name || "");
+            setAgentCurrency(data.agent.currencyCode || "");
+
+            // Preselect the region whose currency matches the agent's currency
+            const match = (data.regions || []).find((x) => x.currencyCode === data.agent.currencyCode);
+            if (match) {
+              setRegion(match.key);
+            } else {
+              // If no region matches (e.g., agent currency not supported), leave region blank
+              setRegion("");
+            }
+          }
+        } else if (r.status === 401) {
+          // Unauthed → treat as no-agent; keep defaults
+        }
+      } catch {
+        // On error, keep the fallback list and no lock
+      }
+    })();
+  }, []);
 
   async function handleProceed() {
-    if (!region) return;
+    setErr("");
+    if (!region) {
+      setErr("Please select a region.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/candidate/checkout", {
@@ -16,11 +72,13 @@ export default function BillingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ region }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create checkout");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to create checkout.");
+      }
       window.location.href = data.url; // Stripe takes over
     } catch (e) {
-      alert(e.message);
+      setErr(e.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -62,17 +120,25 @@ export default function BillingPage() {
 
             <div className="mt-6">
               <label className="text-sm font-medium text-gray-900">Select Your Region</label>
+              {locked && agentName && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Linked to <span className="font-medium">{agentName}</span>. Currency locked to <span className="font-medium">{agentCurrency}</span>.
+                </p>
+              )}
               <div className="mt-2 relative">
                 <select
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
-                  className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
+                  disabled={locked}
+                  className={`w-full rounded-lg border px-3 py-2 bg-white text-gray-900
+                    ${locked ? "opacity-70 cursor-not-allowed" : "focus:outline-none focus:ring-2 focus:ring-indigo-500"}`}
                 >
                   <option value="">Choose your region</option>
-                  <option value="EU">Europe (EUR)</option>
-                  <option value="UK">United Kingdom (GBP)</option>
-                  <option value="US">United States (USD)</option>
-                  {/* Add more, e.g. <option value="PK">Pakistan (PKR)</option> */}
+                  {regions.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -101,6 +167,8 @@ export default function BillingPage() {
               </div>
               <p className="text-xs text-gray-500">Your payment information is encrypted and secure. We use industry-standard security measures.</p>
             </div>
+
+            {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
 
             <button
               disabled={!region || loading}

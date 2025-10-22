@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Clock, BookOpen, AlertTriangle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import InstructionsGridCard from "./InstructionsGridCard";
 
 export default function InstructionsCard() {
   const router = useRouter();
+  const params = useSearchParams();
   const [durationMin, setDurationMin] = useState(null);
   const [starting, setStarting] = useState(false);
   const [err, setErr] = useState("");
+
+  // Stripe success redirect includes ?cs=...
+  const checkoutSessionId = params.get("cs") || null;
 
   useEffect(() => {
     (async () => {
@@ -27,7 +31,12 @@ export default function InstructionsCard() {
     setErr("");
     setStarting(true);
     try {
-      const r = await fetch("/api/candidate/attempts/start", { method: "POST", credentials: "include" });
+      const r = await fetch("/api/candidate/attempts/start", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ checkoutSessionId }), // 👈 tell backend which paid Attempt to start
+      });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.attemptId) {
         setErr(j.error || "Could not start the test.");
@@ -47,27 +56,20 @@ export default function InstructionsCard() {
         <h1 className="text-3xl font-bold text-center mb-8">Test Instructions</h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-          {/* Time Limit Card */}
-
           <InstructionsGridCard type={1} typeText={"Time Limit"} typeInformation={`${durationMin ?? "—"} minutes`} />
-
-          {/* Questions Card */}
           <InstructionsGridCard type={2} typeText={"Questions"} typeInformation={"Multiple Choice"} />
         </div>
 
-        {/* Important Rules Section */}
         <div className="mb-8">
           <h2 className="flex items-center text-4xl font-bold mb-4">
-            <div className="flex items-center">
-              <AlertTriangle className="mr-2" size={30} />
-            </div>
+            <AlertTriangle className="mr-2" size={30} />
             Important Rules
           </h2>
           <ul className="space-y-3 text-gray-700">
             <li className="flex items-start">
               <span className="ml-10 text-black mr-3">•</span>
               <span>
-                The timer will start as soon as you click <span className="font-medium">'Start Test'</span>.
+                The timer starts when you click <span className="font-medium">'Start Test'</span>.
               </span>
             </li>
             <li className="flex items-start">
@@ -84,7 +86,7 @@ export default function InstructionsCard() {
             </li>
             <li className="flex items-start">
               <span className="ml-10 text-black mr-3">•</span>
-              <span>The test will be submitted automatically when the time runs out.</span>
+              <span>The test will be auto-submitted when time runs out.</span>
             </li>
           </ul>
         </div>
@@ -95,7 +97,6 @@ export default function InstructionsCard() {
           </div>
         )}
 
-        {/* Start Button */}
         <button
           onClick={startNow}
           disabled={starting || durationMin == null}

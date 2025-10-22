@@ -21,6 +21,9 @@ const fieldsSchema = z.object({
   consent: z.enum(['true'], { errorMap: () => ({ message: 'Consent is required.' }) }),
 });
 
+// NEW: referral code must look like "AGENTXXXXXX"
+const CODE_RE = /^AGENT[A-Z0-9]{6}$/;
+
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -57,7 +60,10 @@ async function uploadToBlob(file, prefix) {
 export async function POST(req) {
   const form = await req.formData().catch(() => null);
   if (!form) {
-    return NextResponse.json({ ok: false, error: { code: 'BAD_REQUEST', message: 'Expected form-data' } }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: { code: 'BAD_REQUEST', message: 'Expected form-data' } },
+      { status: 400 }
+    );
   }
 
   const fields = {
@@ -70,6 +76,10 @@ export async function POST(req) {
     consent: form.get('consent') ?? '',
   };
 
+  // NEW: optional referral code (Step 0)
+  const referralCodeRaw = (form.get('referralCode') ?? '').toString().trim();
+  const referralCode = referralCodeRaw ? referralCodeRaw.toUpperCase() : '';
+
   const parsed = fieldsSchema.safeParse(fields);
   if (!parsed.success) {
     return NextResponse.json(
@@ -78,8 +88,30 @@ export async function POST(req) {
     );
   }
 
+  // NEW: If code is provided, validate BEFORE doing any writes
+  let agentForLink = null;
+  if (referralCode) {
+    if (!CODE_RE.test(referralCode)) {
+      return NextResponse.json(
+        { ok: false, error: { code: 'INVALID_REFERRAL', message: 'This referral code is invalid or inactive.' } },
+        { status: 400 }
+      );
+    }
+    agentForLink = await prisma.agent.findFirst({
+      where: { code: referralCode, status: 'ACTIVE' },
+      select: { id: true, name: true },
+    });
+    if (!agentForLink) {
+      return NextResponse.json(
+        { ok: false, error: { code: 'INVALID_REFERRAL', message: 'This referral code is invalid or inactive.' } },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Files required (same as before)
   const selfie = form.get('selfie');
-  const idDoc  = form.get('idDoc');
+  const idDoc = form.get('idDoc');
   if (!(selfie instanceof File) || !(idDoc instanceof File)) {
     return NextResponse.json(
       { ok: false, error: { code: 'FILES_REQUIRED', message: 'Selfie and ID document are required.' } },
@@ -87,6 +119,7 @@ export async function POST(req) {
     );
   }
 
+  // Email uniqueness check BEFORE uploading files
   const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (exists) {
     return NextResponse.json(
@@ -95,10 +128,11 @@ export async function POST(req) {
     );
   }
 
+  // Upload files
   let selfieUrl, idDocUrl;
   try {
     selfieUrl = await uploadToBlob(selfie, 'selfies');
-    idDocUrl  = await uploadToBlob(idDoc,  'id-docs');
+    idDocUrl = await uploadToBlob(idDoc, 'id-docs');
   } catch (e) {
     const code = e.message || 'UPLOAD_ERROR';
     const map = {
@@ -137,6 +171,35 @@ export async function POST(req) {
         consentAt: new Date(),
       },
     });
+
+    // NEW: link candidate to agent (atomic with user creation)
+    if (agentForLink) {
+      await tx.candidateAgentLink.create({
+        data: {
+          candidateId: u.id,
+          agentId: agentForLink.id,
+          source: 'REGISTRATION',
+        },
+      });
+
+      // optional audit log — don't fail the tx if this table doesn't exist
+      await tx.auditLog
+        ?.create({
+          data: {
+            action: 'ATTACH_AGENT',
+            entityType: 'User',
+            entityId: u.id,
+            beforeJson: null,
+            afterJson: JSON.stringify({
+              candidateId: u.id,
+              agentId: agentForLink.id,
+              source: 'REGISTRATION',
+            }),
+            actorId: null,
+          },
+        })
+        .catch(() => {});
+    }
 
     return u;
   });
