@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Shield } from "lucide-react";
+import { CircleCheck, CreditCard, Shield } from "lucide-react";
 
 export default function BillingPage() {
   // Selected region key (e.g., "US", "EU", "UK")
@@ -86,20 +86,22 @@ export default function BillingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
-      <div className="max-w-5xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4">
         <h1 className="text-3xl font-semibold text-center text-gray-900">
-          Choose Your <span className="text-indigo-600">Test Plan</span>
+          Choose Your <span className="text-[#6160C4]">Test Plan</span>
         </h1>
         <p className="text-center text-gray-500 mt-2">Secure payment with instant test access</p>
 
         <div className="grid md:grid-cols-2 gap-6 mt-10">
           {/* Left: plan card */}
-          <div className="border rounded-2xl bg-white shadow-sm p-6">
+          <div className="border-gray-300 border-1 rounded-2xl bg-white shadow-lg p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">English Proficiency Test</h2>
-              <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800">Popular</span>
+              <h2 className="text-2xl font-bold text-gray-900">English Proficiency Test</h2>
+              <span className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-[#FABE17] via-[#FABE17] to-[#FA8914] text-white font-bold">
+                Popular
+              </span>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Complete 30-minute assessment with instant results</p>
+            <p className="text-sm text-black mt-1">Complete 30-minute assessment with instant results</p>
 
             <ul className="space-y-3 mt-6 text-sm text-gray-900">
               {[
@@ -110,16 +112,16 @@ export default function BillingPage() {
                 "European job market recognized",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-3">
-                  <span className="mt-0.5 h-5 w-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-semibold">
-                    ✓
+                  <span className="mt-0.5 h-5 w-5 rounded-full  text-[#20C45E] flex items-center justify-center text-xs font-semibold">
+                    <CircleCheck />
                   </span>
-                  <span className="text-gray-900">{t}</span>
+                  <span className="text-black font-medium text-md">{t}</span>
                 </li>
               ))}
             </ul>
 
             <div className="mt-6">
-              <label className="text-sm font-medium text-gray-900">Select Your Region</label>
+              <label className="text-sm font-bold text-black ">Select Your Region</label>
               {locked && agentName && (
                 <p className="text-xs text-gray-600 mt-1">
                   Linked to <span className="font-medium">{agentName}</span>. Currency locked to <span className="font-medium">{agentCurrency}</span>.
@@ -130,8 +132,8 @@ export default function BillingPage() {
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
                   disabled={locked}
-                  className={`w-full rounded-lg border px-3 py-2 bg-white text-gray-900
-                    ${locked ? "opacity-70 cursor-not-allowed" : "focus:outline-none focus:ring-2 focus:ring-indigo-500"}`}
+                  className={`w-full rounded-lg border-gray-300 border-1 px-3 py-2 bg-white text-black text-sm 
+                    ${locked ? "opacity-70 cursor-not-allowed" : "focus:outline-black"}`}
                 >
                   <option value="">Choose your region</option>
                   {regions.map((r) => (
@@ -145,27 +147,31 @@ export default function BillingPage() {
           </div>
 
           {/* Right: payment card */}
-          <div className="border rounded-2xl bg-white shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900">Payment Method</h3>
+          <div className="border-gray-300 border-1 rounded-2xl bg-white shadow-sm p-6">
+            <h3 className="text-2xl font-bold text-gray-900">Payment Method</h3>
             <p className="text-sm text-gray-500">Secure payment powered by Stripe</p>
 
-            <div className="mt-6 flex items-center justify-between rounded-lg border p-4">
+            <div className="mt-6 flex items-center gap-3">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg border flex items-center justify-center">💳</div>
+                <CreditCard color="#5867BE" size={18} />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Pay with Stripe</p>
-                  <p className="text-xs text-gray-500">Secure</p>
+                  <p className="text-sm font-bold text-gray-900">Pay with Stripe</p>
                 </div>
               </div>
-              <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full font-medium">Secure</span>
+              <span className="text-xs bg-[#4728EC] text-white px-3 py-0.5 rounded-full font-bold">Secure</span>
             </div>
 
-            <div className="mt-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-4 w-4 text-gray-900" />
-                <h4 className="font-semibold text-sm text-gray-900">Secure Payment</h4>
+            <div className="mt-6 ">
+              <div className="border-t mb-6 border-gray-200"></div>
+              <div className="flex gap-2 mb-2">
+                <Shield />
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-900">Secure Payment</h4>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Your payment information is encrypted and secure. We use industry-standard security measures.
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-gray-500">Your payment information is encrypted and secure. We use industry-standard security measures.</p>
             </div>
 
             {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
@@ -173,7 +179,7 @@ export default function BillingPage() {
             <button
               disabled={!region || loading}
               onClick={handleProceed}
-              className="mt-6 w-full rounded-full bg-indigo-400 text-white py-3 font-medium disabled:opacity-50 hover:bg-indigo-500 transition-colors"
+              className="mt-6 w-full rounded-full bg-indigo-400 text-white py-3 font-bold disabled:opacity-50 hover:bg-indigo-500 transition-colors"
             >
               {loading ? "Redirecting…" : "Proceed to Payment"}
             </button>

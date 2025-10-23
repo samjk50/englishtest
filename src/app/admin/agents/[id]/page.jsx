@@ -106,7 +106,7 @@ export default function AgentDetailPage() {
 
           {/* Referred Test Attempts */}
           <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="rounded border bg-white">
+            <div className="rounded border-gray-200 border-1 bg-white">
               <div className="px-6 py-4">
                 <h2 className="text-xl font-semibold text-black">Referred Test Attempts</h2>
               </div>
@@ -129,7 +129,7 @@ export default function AgentDetailPage() {
                       </tr>
                     ) : (
                       attempts.items.map((a) => (
-                        <tr key={a.id} className="border-t">
+                        <tr key={a.id} className="border-t border-gray-200">
                           <td className="py-2">
                             <div className="font-medium text-black">{a.candidate?.name || "—"}</div>
                             <div className="text-gray-500">{a.candidate?.email || ""}</div>
@@ -170,7 +170,7 @@ export default function AgentDetailPage() {
             </div>
 
             {/* Payout History */}
-            <div className="rounded border bg-white">
+            <div className="rounded border-gray-200 border-1 bg-white">
               <div className="px-6 py-4">
                 <h2 className="text-xl font-semibold text-black">Payout History</h2>
               </div>
@@ -192,7 +192,7 @@ export default function AgentDetailPage() {
                       </tr>
                     ) : (
                       payouts.items.map((p) => (
-                        <tr key={p.id} className="border-t">
+                        <tr key={p.id} className="border-t border-gray-200">
                           <td className="py-2 text-gray-500">{new Date(p.createdAt).toLocaleString()}</td>
                           <td className="py-2 text-gray-500">
                             <Money cents={p.amountCents} currency={currency} />

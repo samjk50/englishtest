@@ -37,7 +37,7 @@ export default function ManageReferralsPage() {
   async function load(p = page, query = q) {
     setLoading(true);
     try {
-      const r = await fetch(`/api/admin/referrals/attempts?page=${p}&pageSize=20&search=${encodeURIComponent(query)}`);
+      const r = await fetch(`/api/admin/referrals/attempts?page=${p}&pageSize=10&search=${encodeURIComponent(query)}`);
       const j = await r.json();
       setRows(j.items || []);
       setTotalPages(j.totalPages || 1);
@@ -82,7 +82,7 @@ export default function ManageReferralsPage() {
             />
           </div>
 
-          <div className="overflow-hidden rounded-xl border bg-white">
+          <div className="overflow-hidden rounded-xl border-gray-200 border-1 bg-white">
             <table className="min-w-full">
               <thead className="bg-gray-50">
                 <tr className="text-left text-sm font-semibold text-gray-600">
@@ -95,7 +95,7 @@ export default function ManageReferralsPage() {
               </thead>
               <tbody className="divide-y">
                 {rows.map((r) => (
-                  <tr key={r.attemptId} className="align-top">
+                  <tr key={r.attemptId} className="align-top border-gray-200 border-1">
                     <td className="px-6 py-3">
                       <div className="font-bold text-black">{r.candidate?.name}</div>
                       <div className="text-sm text-gray-600">{r.candidate?.email}</div>
@@ -271,7 +271,7 @@ function AdjustReferralModal({ attemptId, candidateName, onClose, onSaved }) {
             <select
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-gray-900 focus:outline-black"
+              className="w-full rounded-lg border-gray-200 border-1 px-3 py-2 text-gray-900 focus:outline-black"
             >
               {/* NONE option */}
               <option value="">None</option>
@@ -289,7 +289,7 @@ function AdjustReferralModal({ attemptId, candidateName, onClose, onSaved }) {
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-5">
-          <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">
+          <button onClick={onClose} className="rounded-md border-gray-200 border-1 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">
             Cancel
           </button>
           <button

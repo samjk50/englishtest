@@ -11,7 +11,7 @@ function Money({ cents = 0, currency = "USD" }) {
 
 function Card({ title, children, icon }) {
   return (
-    <div className="rounded-md border bg-white p-5">
+    <div className="rounded-md border-gray-200 border-1 bg-white p-5">
       <div className="flex justify-between">
         <div className="text-sm text-black font-bold">{title}</div>
         {icon}
@@ -70,7 +70,7 @@ export default function CandidateDetailPage() {
       ) : (
         <>
           {/* Header card */}
-          <div className="flex gap-6 mt-4 rounded-2xl border bg-white p-5">
+          <div className="flex gap-6 mt-4 rounded-2xl border-gray-200 border-1 bg-white p-5">
             <div className="flex items-center justify-center rounded-full w-20 h-20 bg-[#DBE9FE]">
               <User size={40} color="#2463EB" />
             </div>
@@ -109,7 +109,7 @@ export default function CandidateDetailPage() {
           </div>
 
           {/* Attempts History */}
-          <div className="mt-8 rounded-md border bg-white">
+          <div className="mt-8 rounded-md border-gray-200 border-1 bg-white">
             <div className="px-6 py-4">
               <h2 className="text-xl font-semibold text-black">Test Attempts History</h2>
             </div>
@@ -133,7 +133,7 @@ export default function CandidateDetailPage() {
                     </tr>
                   ) : (
                     attempts.map((a) => (
-                      <tr key={a.id} className="border-t">
+                      <tr key={a.id} className="border-t border-gray-200">
                         <td className="py-2 text-gray-500">{a.date ? new Date(a.date).toLocaleString() : "—"}</td>
                         <td className="py-2">
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs capitalize text-gray-500">

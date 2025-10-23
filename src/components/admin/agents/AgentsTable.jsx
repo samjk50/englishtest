@@ -96,7 +96,7 @@ export default function AgentsTable() {
         <div className="overflow-hidden rounded-xl shadow-md">
           <table className="min-w-full divide-y">
             <thead className="bg-gray-50">
-              <tr className="text-left text-sm font-semibold text-gray-600">
+              <tr className="text-left text-sm font-semibold text-gray-600 border-b border-gray-200">
                 <th className="px-6 py-3">Name</th>
                 <th className="px-6 py-3">Referrals</th>
                 <th className="px-6 py-3">Paid Tests</th>
@@ -110,7 +110,7 @@ export default function AgentsTable() {
             </thead>
             <tbody className="divide-y bg-white">
               {data.map((a) => (
-                <tr key={a.id} className="align-top">
+                <tr key={a.id} className="align-top border-b border-gray-200">
                   <td className="px-6 py-4">
                     <div className="font-bold text-black">{a.name}</div>
                     <div className="text-sm font-bold text-[#6B7280]">{a.email}</div>

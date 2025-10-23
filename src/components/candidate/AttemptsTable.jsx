@@ -57,18 +57,18 @@ export default function AttemptsTable() {
   }
 
   return (
-    <div className="border rounded-xl bg-white shadow-sm">
+    <div className="border-gray-300 border-1 rounded-xl bg-white shadow-sm">
       <div className="flex items-center justify-between px-10 py-7 ">
         <div>
-          <h3 className="text-lg font-medium text-[#000000]">Test Attempts</h3>
-          <p className="text-sm text-gray-600 mt-0.5">Your complete testing history</p>
+          <h3 className="text-lg font-bold text-[#000000]">Test Attempts</h3>
+          <p className="text-sm font-medium text-gray-600 mt-0.5">Your complete testing history</p>
         </div>
         <button
           onClick={takeNewTest}
-          className="flex items-center gap-2 bg-[#4E58BC] text-white px-6 py-3 rounded-4xl hover:bg-indigo-700 transition-colors"
+          className="flex items-center gap-2 bg-[#6261C4] shadow-md text-white px-6 py-3 rounded-4xl hover:bg-indigo-700 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
-          <span className="text-sm font-bold">Take New Test</span>
+          <span className="text-sm font-bold ">Take New Test</span>
         </button>
       </div>
 

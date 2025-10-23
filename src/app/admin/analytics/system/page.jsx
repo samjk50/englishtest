@@ -11,7 +11,7 @@ function Money({ cents = 0, currency = "USD" }) {
 
 function Stat({ label, children, icon }) {
   return (
-    <div className="rounded-md border bg-white p-4">
+    <div className="rounded-md border-gray-200 border-1 bg-white p-4">
       <div className="flex justify-between">
         <div className="text-sm  text-black font-bold">{label}</div>
         {icon}
@@ -169,7 +169,7 @@ export default function SystemAnalyticsPage() {
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              className="ml-auto rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
+              className="ml-auto rounded-md border-gray-200 border-1 px-3 py-2 text-sm hover:bg-gray-50"
             >
               Export CSV
             </button>
@@ -196,7 +196,7 @@ export default function SystemAnalyticsPage() {
 
           {/* A1..C2 average bar chart */}
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-md border bg-white p-5">
+            <div className="rounded-md border-gray-200 border-1 bg-white p-5">
               <div className="mb-2 text-lg font-bold text-black">Average Scores by Section</div>
               <Bars data={bars} />
             </div>
@@ -209,23 +209,23 @@ export default function SystemAnalyticsPage() {
                   <span>Total Tests Purchased</span>
                   <span className="font-semibold">{data.quickSummary.totalTestsPurchased}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-md border px-3 py-2 border-gray-300 border-1 text-black">
+                <div className="flex items-center justify-between rounded-md px-3 py-2 border-gray-300 border-1 text-black">
                   <span>Total Revenue</span>
                   <span className="font-semibold">
                     <Money cents={data.quickSummary.totalRevenueCents} />
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-md border px-3 py-2 border-gray-300 border-1 text-black">
+                <div className="flex items-center justify-between rounded-md px-3 py-2 border-gray-300 border-1 text-black">
                   <span>Average Revenue per Test</span>
                   <span className="font-semibold">
                     <Money cents={data.quickSummary.avgRevenuePerTestCents} />
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-md border px-3 py-2 border-gray-300 border-1 text-black">
+                <div className="flex items-center justify-between rounded-md px-3 py-2 border-gray-300 border-1 text-black">
                   <span>Unique Candidates</span>
                   <span className="font-semibold">{data.quickSummary.uniqueCandidates}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-md border px-3 py-2 border-gray-300 border-1 text-black">
+                <div className="flex items-center justify-between rounded-md px-3 py-2 border-gray-300 border-1 text-black">
                   <span>Candidate Retake Rate</span>
                   <span className="font-semibold">{data.quickSummary.candidateRetakeRatePct}%</span>
                 </div>

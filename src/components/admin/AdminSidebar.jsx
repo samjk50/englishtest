@@ -26,15 +26,15 @@ export default function AdminSidebar({ user }) {
   const isActive = (href) => pathname.startsWith(href);
 
   return (
-    <aside className="w-[248px] shrink-0 border-r bg-white flex flex-col sticky top-0 h-dvh z-10" aria-label="Admin">
+    <aside className="w-[248px] shrink-0 border-r border-gray-200 bg-white flex flex-col sticky top-0 h-dvh z-10" aria-label="Admin">
       {/* Logo block */}
-      <div className="px-4 py-5 border-b">
+      <div className="px-4 py-5 border-b border-gray-200 ">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-indigo-600 grid place-items-center shadow-sm">
             <AcademicCapIcon className="h-6 w-6 text-white" />
           </div>
           <div>
-            <div className="text-sm font-semibold leading-5 text-gray-600">EnglishTest Pro</div>
+            <div className="text-sm font-semibold leading-5 text-gray-600 text-bold">EnglishTest Pro</div>
             <div className="text-xs text-gray-500 -mt-0.5">Admin Portal</div>
           </div>
         </div>
@@ -65,14 +65,14 @@ export default function AdminSidebar({ user }) {
       </nav>
 
       {/* User card */}
-      <div className="mt-auto p-3 border-t ">
+      <div className="mt-auto p-3 border-t border-gray-200">
         <div className="rounded-lg bg-gray-50 p-3 text-gray-600">
           <div className="text-sm font-medium">{user?.name || "Admin"}</div>
           <div className="text-xs text-gray-500">{user?.role || "Administrator"}</div>
 
           <form action="/api/auth/logout" method="post" className="mt-3 text-gray-600">
             <button
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-white border text-sm
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-white border-gray-200 border-1 text-sm
                          px-3 py-2 hover:bg-gray-50"
             >
               <ArrowRightOnRectangleIcon className="h-4 w-4" />

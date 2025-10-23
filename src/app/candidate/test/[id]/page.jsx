@@ -218,7 +218,7 @@ export default function TestRunner() {
                           name={`q-${item.id}`}
                           checked={!!checked}
                           onChange={handleChange}
-                          className="h-4 w-4 border-gray-300"
+                          className="h-4 w-4 border-gray-300 accent-black"
                         />
                         <span className="text-sm text-gray-900">{opt.text}</span>
                       </div>

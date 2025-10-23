@@ -69,7 +69,7 @@ export default function RecordPayoutModal({ open, onClose, agentId, agentName, c
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-black focus:outline-black"
+              className="mt-1 w-full rounded-lg border-gray-200 border-1 px-3 py-2 text-black focus:outline-black"
             />
             <p className="mt-1 text-xs text-gray-600">
               Outstanding: <MoneyFmt amount={outstanding} currency={currencyCode} />
@@ -82,7 +82,7 @@ export default function RecordPayoutModal({ open, onClose, agentId, agentName, c
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g., Payout for August 2025"
-              className="mt-1 w-full rounded-lg border px-3 py-2 h-28 resize-y placeholder:text-[#71717A] placeholder:text-sm focus:outline-black text-black"
+              className="mt-1 w-full rounded-lg border-gray-200 border-1 px-3 py-2 h-28 resize-y placeholder:text-[#71717A] placeholder:text-sm focus:outline-black text-black"
             />
           </div>
 
