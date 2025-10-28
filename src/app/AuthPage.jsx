@@ -1,6 +1,6 @@
 "use client";
 import { Camera, CircleCheckBig, Eye, EyeOff, File, Lock, Mail, Shield, Upload, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 // Password: 8+, one upper, one lower, one digit
@@ -266,16 +266,21 @@ function ReferralStep0({ referralCode, setReferralCode, onContinue, onSkip }) {
   const [agentName, setAgentName] = useState("");
   const [error, setError] = useState("");
 
+  // Hard limit and pattern check (optional)
   const CODE_RE = /^AGENT[A-Z0-9]{6}$/;
 
-  async function validate(code) {
+  // Called only when user clicks Continue
+  async function handleValidateAndContinue(e) {
+    e.preventDefault();
     setError("");
-    setAgentName("");
     setValid(false);
+    setAgentName("");
 
-    const upper = code.trim().toUpperCase();
-    if (!upper || !CODE_RE.test(upper)) {
-      setValid(false);
+    const upper = referralCode.trim().toUpperCase();
+
+    // Require exactly 11 characters
+    if (upper.length !== 11) {
+      setError("Referral code must be 11 characters long.");
       return;
     }
 
@@ -287,65 +292,75 @@ function ReferralStep0({ referralCode, setReferralCode, onContinue, onSkip }) {
         body: JSON.stringify({ code: upper }),
       });
       const data = await r.json().catch(() => ({}));
+
       if (data.valid) {
         setValid(true);
         setAgentName(data.agent?.name || "");
+        // ✅ Only go to next step after successful validation
+        onContinue();
       } else {
-        setValid(false);
-        setError("This referral code is invalid or inactive.");
+        setError("❌ Invalid referral code. Please check and try again.");
       }
     } catch {
-      setValid(false);
       setError("Unable to validate code right now.");
     } finally {
       setChecking(false);
     }
   }
 
+  const handleChange = (e) => {
+    const val = e.target.value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 11);
+    setReferralCode(val);
+    setError("");
+    setValid(false);
+    setAgentName("");
+  };
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (valid) onContinue();
-      }}
-      className="space-y-5"
-      noValidate
-    >
+    <form onSubmit={handleValidateAndContinue} className="space-y-5" noValidate>
       <div className="p-6">
         <label className="block text-sm font-bold text-black mb-1">Referral Code</label>
+
         <input
-          className="w-full rounded-xl border p-3 placeholder:text-gray-500 placeholder:text-center placeholder:text-md text-black text-center focus:outline-black"
+          className="w-full rounded-xl border p-3 placeholder:text-gray-500 placeholder:text-center text-black text-center focus:outline-black"
           value={referralCode}
-          onChange={(e) => {
-            const v = e.target.value.toUpperCase();
-            setReferralCode(v);
-            setError("");
-            setValid(false);
-            if (v.length === 11) validate(v);
-          }}
-          onBlur={() => referralCode && referralCode.length === 11 && validate(referralCode)}
+          onChange={handleChange}
           placeholder="ENTER YOUR REFERRAL CODE (IF ANY)"
           inputMode="latin"
           autoCapitalize="characters"
+          maxLength={11}
         />
+
         <div className="mt-2 text-center text-gray-600">Enter your referral code to get special benefits</div>
 
-        {agentName && valid && (
+        {/* Validation result */}
+        {valid && (
           <p className="mt-2 text-sm text-green-700">
-            Linked to <span className="font-medium">{agentName}</span>
+            ✅ Valid referral code
+            {agentName && (
+              <>
+                {" "}
+                – linked to <span className="font-medium">{agentName}</span>
+              </>
+            )}
           </p>
         )}
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"
-          disabled={!valid || checking}
-          className={`mt-6 w-full rounded-full py-3 font-bold text-white ${valid ? "bg-[#5E5FC3]" : "bg-slate-300 cursor-not-allowed"}`}
+          disabled={checking || referralCode.length < 11}
+          className={`mt-6 w-full rounded-full py-3 font-bold text-white ${
+            referralCode.length === 11 && !checking ? "bg-[#5E5FC3]" : "bg-slate-300 cursor-not-allowed"
+          }`}
         >
           {checking ? "Checking…" : "Continue"}
         </button>
 
-        <button type="button" onClick={onSkip} className="mt-3 block w-full text-center text-md text-slate-700 font-extrabold mt-2">
+        <button type="button" onClick={onSkip} className="mt-3 block w-full text-center text-md text-slate-700 font-extrabold">
           Skip – I don't have a referral code
         </button>
       </div>
@@ -354,20 +369,36 @@ function ReferralStep0({ referralCode, setReferralCode, onContinue, onSkip }) {
 }
 
 function RegisterFormStep1({ form, setField, errors, onNext, onSwitchToLogin }) {
+  const [verifying, setVerifying] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    // Cleanup if the component unmounts before the timer finishes
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (verifying) return; // guard against double submits
+    setVerifying(true);
+
+    // Simulate verifying delay
+    timerRef.current = setTimeout(() => {
+      setVerifying(false);
+      onNext();
+    }, 3000);
+  };
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onNext();
-      }}
-      className="space-y-3"
-      noValidate
-    >
+    <form onSubmit={handleSubmit} className="space-y-3" noValidate>
       <p className="text-black text-xs font-bold mb-[0.5rem]">Full Name *</p>
       <Field required placeholder="Enter your full name" value={form.fullName} onChange={(v) => setField("fullName", v)} error={errors.fullName} />
-      <p className="text-black text-xs font-bold mb-[0.5rem]">Email Address *</p>
 
+      <p className="text-black text-xs font-bold mb-[0.5rem]">Email Address *</p>
       <Field required type="email" placeholder="you@example.com" value={form.email} onChange={(v) => setField("email", v)} error={errors.email} />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <p className="text-black text-xs font-bold mb-[0.5rem]">Password *</p>
@@ -392,8 +423,10 @@ function RegisterFormStep1({ form, setField, errors, onNext, onSwitchToLogin }) 
           />
         </div>
       </div>
+
       <p className="text-black text-xs font-bold mb-[0.5rem]">Phone Number</p>
       <Field placeholder="+1 (555) 000-0000" value={form.phone} onChange={(v) => setField("phone", v)} error={errors.phone} />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <p className="text-black text-xs font-bold mb-[0.5rem]">Country</p>
@@ -410,12 +443,30 @@ function RegisterFormStep1({ form, setField, errors, onNext, onSwitchToLogin }) 
           <Field placeholder="Enter your city" value={form.city} onChange={(v) => setField("city", v)} error={errors.city} />
         </div>
       </div>
+
       <div className="mt-6">
-        <button className={`w-full bg-[#5E5FC3] font-bold text-white rounded-full py-3 flex justify-center gap-4`}>
-          Continue to Verification
-          <div className="flex items-center">
-            <Shield size={15} />
-          </div>
+        <button
+          type="submit"
+          disabled={verifying}
+          className={`w-full bg-[#5E5FC3] font-bold text-white rounded-full py-3 flex items-center justify-center gap-2
+            ${verifying ? "opacity-60 cursor-not-allowed" : "hover:opacity-90 transition"}`}
+        >
+          {verifying ? (
+            <>
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              Verifying…
+            </>
+          ) : (
+            <>
+              Continue to Verification
+              <div className="flex items-center">
+                <Shield size={15} />
+              </div>
+            </>
+          )}
         </button>
       </div>
     </form>

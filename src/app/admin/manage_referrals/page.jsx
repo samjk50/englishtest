@@ -108,13 +108,15 @@ export default function ManageReferralsPage() {
                       <AssignedBadge assigned={r.assigned} />
                     </td>
                     <td className="px-6 py-3 text-right">
-                      <button
-                        onClick={() => openAdjust(r)}
-                        className="inline-flex items-center gap-3 rounded-lg border-[#EBEBED] border-1 px-3 py-2 text-sm text-black font-bold hover:bg-gray-50"
-                        title="Adjust referral"
-                      >
-                        <Pencil size={15} /> <div>Adjust</div>
-                      </button>
+                      {r.assigned.type !== "DEFAULT" && (
+                        <button
+                          onClick={() => openAdjust(r)}
+                          className="inline-flex items-center gap-3 rounded-lg border-[#EBEBED] border-1 px-3 py-2 text-sm text-black font-bold hover:bg-gray-50"
+                          title="Adjust referral"
+                        >
+                          <Pencil size={15} /> <div>Adjust</div>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

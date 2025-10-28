@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Calendar, DollarSign, FileChartColumnIncreasing, Globe, Mail, Phone, User } from "lucide-react";
+import ProfileImages from "@/components/candidate/ProfileImages";
 
 function Money({ cents = 0, currency = "USD" }) {
   const v = (Number(cents) || 0) / 100;
@@ -93,6 +94,9 @@ export default function CandidateDetailPage() {
                   <Calendar size={15} /> Registered: {new Date(user.createdAt).toLocaleDateString("en-US")}
                 </div>
               </div>
+            </div>
+            <div className="w-50">
+              <ProfileImages selfieUrl={user.identityVerification.selfieUrl} idDocUrl={user.identityVerification.idDocUrl} />
             </div>
           </div>
 

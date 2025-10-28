@@ -65,14 +65,18 @@ export default function ResultPage() {
 
           {/* Description */}
           <div className="mt-6 rounded-xl bg-[#F7F8FC] p-4 text-sm text-gray-700 text-center">
-            {level === "A1" && "You can understand and use familiar everyday expressions and basic phrases aimed at simple needs."}
-            {level === "A2" && "You can communicate in simple and routine tasks requiring a direct exchange of information on familiar matters."}
+            {level === "A1" &&
+              "You can understand and use familiar everyday expressions and very basic phrases. Can introduce themselves and others and ask and answer simple questions about personal details (e.g., where they live, people they know, things they have). Can interact in a simple way if the other person talks slowly and clearly."}
+            {level === "A2" &&
+              "You can understand frequently used expressions related to areas of most immediate relevance (e.g., personal and family information, shopping, local geography, employment). Can communicate in simple and routine tasks requiring a simple and direct exchange of information. Can describe in simple terms aspects of their background, immediate environment and matters in areas of immediate need."}
             {level === "B1" &&
-              "You can deal with most situations likely to arise while travelling and produce simple connected text on familiar topics."}
+              "You can understand the main points of clear standard input on familiar matters such as work, school, leisure, etc. Can deal with most situations likely to arise while travelling. Can produce simple connected text on topics which are familiar or of personal interest. Can describe experiences, events, dreams, hopes and ambitions and briefly give reasons and explanations for opinions and plans."}
             {level === "B2" &&
-              "You can interact with a degree of fluency and spontaneity that makes regular interaction with native speakers possible."}
-            {level === "C1" && "You can express ideas fluently and spontaneously without much obvious searching for expressions."}
-            {level === "C2" && "You can understand with ease virtually everything heard or read and summarize information coherently."}
+              "You can understand the main ideas of complex text on both concrete and abstract topics, including technical discussions in their field of specialisation. Can interact with a degree of fluency and spontaneity that makes regular interaction with native speakers quite possible without strain for either party. Can produce clear, detailed text on a wide range of subjects and explain a viewpoint on a topical issue giving the advantages and disadvantages of various options."}
+            {level === "C1" &&
+              "You can understand the main ideas of complex text on both concrete and abstract topics, including technical discussions in their field of specialisation. Can interact with a degree of fluency and spontaneity that makes regular interaction with native speakers quite possible without strain for either party. Can produce clear, detailed text on a wide range of subjects and explain a viewpoint on a topical issue giving the advantages and disadvantages of various options."}
+            {level === "C2" &&
+              "You can understand with ease virtually everything heard or read. Can summarise information from different spoken and written sources, reconstructing arguments and accounts in a coherent presentation. Can express themselves spontaneously, very fluently and precisely, differentiating finer shades of meaning even in more complex situations."}
           </div>
         </div>
 

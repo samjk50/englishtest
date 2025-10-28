@@ -1,7 +1,7 @@
 "use client";
 
-import { Filter, Pencil, Trash, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Filter, Pencil, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 
 const TAGS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
